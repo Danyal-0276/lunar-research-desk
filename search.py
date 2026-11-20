@@ -1,4 +1,5 @@
 """Hybrid retrieval with reciprocal rank fusion and a joint question/passage reranker."""
+
 from collections import Counter
 from functools import lru_cache
 
@@ -11,7 +12,10 @@ from corpus import ENCODER, connect
 @lru_cache(maxsize=1)
 def models():
     from sentence_transformers import CrossEncoder, SentenceTransformer
-    return SentenceTransformer(ENCODER), CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
+
+    return SentenceTransformer(ENCODER), CrossEncoder(
+        "cross-encoder/ms-marco-MiniLM-L6-v2"
+    )
 
 
 def retrieve(question):
@@ -20,18 +24,27 @@ def retrieve(question):
     with connect() as db, db.cursor(row_factory=dict_row) as cur:
         # Keep the two retrieval branches on the same corpus snapshot.
         cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
-        cur.execute("SELECT id,source,page,body,embedding FROM nasa_rag_chunks ORDER BY id")
+        cur.execute(
+            "SELECT id,source,page,body,embedding FROM nasa_rag_chunks ORDER BY id"
+        )
         rows = cur.fetchall()
         if not rows:
             raise ValueError("Run python app.py ingest first.")
-        cur.execute("""SELECT id FROM nasa_rag_chunks, plainto_tsquery('english', %s) q
-            WHERE words @@ q ORDER BY ts_rank_cd(words,q) DESC,id LIMIT 20""", (question,))
+        cur.execute(
+            """SELECT id FROM nasa_rag_chunks, plainto_tsquery('english', %s) q
+            WHERE words @@ q ORDER BY ts_rank_cd(words,q) DESC,id LIMIT 20""",
+            (question,),
+        )
         lexical = [row["id"] for row in cur]
     encoder, reranker = models()
-    vector = encoder.encode("Represent this sentence for searching relevant passages: " + question,
-                            normalize_embeddings=True)
+    vector = encoder.encode(
+        "Represent this sentence for searching relevant passages: " + question,
+        normalize_embeddings=True,
+    )
     # Exact cosine search is inexpensive for these two PDFs. Both sides are unit vectors.
-    similarities = np.asarray([row["embedding"] for row in rows], dtype=np.float32) @ vector
+    similarities = (
+        np.asarray([row["embedding"] for row in rows], dtype=np.float32) @ vector
+    )
     dense = [rows[i]["id"] for i in np.argsort(-similarities, kind="stable")[:20]]
     scores = Counter()
     for ranking in (lexical, dense):

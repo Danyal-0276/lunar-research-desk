@@ -1,4 +1,5 @@
 """Command-line entry point for indexing, searching and cited answers."""
+
 import argparse
 import sys
 
@@ -8,7 +9,9 @@ from search import retrieve
 
 def main():
     parser = argparse.ArgumentParser(description="Search NASA lunar science PDFs")
-    parser.add_argument("action", nargs="?", choices=["ingest", "search", "ask"], default="ask")
+    parser.add_argument(
+        "action", nargs="?", choices=["ingest", "search", "ask"], default="ask"
+    )
     parser.add_argument("question", nargs="?")
     args = parser.parse_args()
     if args.action == "ingest":
@@ -21,6 +24,7 @@ def main():
             print(f"{SOURCES[row['source']]}#page={row['page']}\n{row['body']}\n")
     else:
         from generation import answer
+
         print(answer(question, rows))
 
 

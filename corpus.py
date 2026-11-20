@@ -1,4 +1,5 @@
 """Extract page-aware passages and atomically replace the project's Postgres index."""
+
 import os
 from pathlib import Path
 
@@ -48,7 +49,9 @@ def ingest():
             embedding real[] NOT NULL CHECK (cardinality(embedding)=384),
             words tsvector GENERATED ALWAYS AS (to_tsvector('english', body)) STORED
         )""")
-        db.execute("CREATE INDEX IF NOT EXISTS nasa_rag_words ON nasa_rag_chunks USING gin(words)")
+        db.execute(
+            "CREATE INDEX IF NOT EXISTS nasa_rag_words ON nasa_rag_chunks USING gin(words)"
+        )
         # Readers see either the old corpus or the complete new corpus.
         db.execute("LOCK TABLE nasa_rag_chunks IN SHARE ROW EXCLUSIVE MODE")
         db.execute("DELETE FROM nasa_rag_chunks")
