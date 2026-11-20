@@ -10,7 +10,6 @@ st.title("Lunar research desk")
 st.caption("Ask a standalone question about the Moon and inspect the NASA passages behind the answer.")
 
 history = st.session_state.setdefault("history", [])
-mode = st.sidebar.radio("Test mode", ["Cited answer", "Retrieval only"])
 if st.sidebar.button("Clear conversation"):
     history.clear()
 
@@ -24,7 +23,7 @@ def show_turn(turn):
         if turn.get("answer"):
             st.markdown(turn["answer"])
         if turn["sources"]:
-            with st.expander("Retrieved passages", expanded=turn["search_only"]):
+            with st.expander("Inspect all retrieved passages", expanded=False):
                 for rank, row in enumerate(turn["sources"], 1):
                     title = {"moon": "Moon lithograph", "guide": "Exploring the Moon"}[row["source"]]
                     url = SOURCES[row["source"]]
@@ -37,7 +36,7 @@ for turn in history:
 
 question = st.chat_input("Ask about the Moon", max_chars=1500)
 if question and question.strip():
-    turn = {"question": question.strip(), "sources": [], "search_only": mode == "Retrieval only"}
+    turn = {"question": question.strip(), "sources": []}
     with st.spinner("Searching NASA publications…"):
         try:
             rows = retrieve(turn["question"])
@@ -45,7 +44,7 @@ if question and question.strip():
             turn["sources"] = [{key: row[key] for key in ("source", "page", "body")} for row in rows]
         except Exception as error:
             turn["error"] = f"Search failed ({type(error).__name__}). Check PostgreSQL, the passage index, and local model availability."
-    if turn["sources"] and not turn["search_only"]:
+    if turn["sources"]:
         with st.spinner("Checking the answer against the retrieved passages…"):
             try:
                 turn["answer"] = answer(turn["question"], turn["sources"])

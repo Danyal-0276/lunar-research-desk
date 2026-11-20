@@ -10,7 +10,7 @@
 
 ## Try a question
 
-Ask **“How much rock and soil did astronauts bring back to Earth?”** in the Streamlit chat. Choose **Retrieval only** to inspect the four ranked passages, or **Cited answer** to also ask Groq to write an answer. Expand the passages and follow a page link to check the wording in the original PDF. Chat history is visible during the browser session. Phrase each question independently because the retriever and model receive only the current turn.
+Ask **“How much rock and soil did astronauts bring back to Earth?”** in the Streamlit chat. Each question automatically retrieves four passages and asks Groq for an answer with supporting quotations and PDF page links. Expand the passages and follow a page link to check the wording in the original PDF. Chat history is visible during the browser session. Phrase each question independently because the retriever and model receive only the current turn.
 
 ## Architecture
 
@@ -42,7 +42,7 @@ flowchart TD
 | 4. Retrieve twice | PostgreSQL finds up to 20 lexical matches. For semantic search, the app embeds the question with the BGE retrieval instruction and takes the top 20 cosine similarities. Both branches read the same database snapshot. |
 | 5. Fuse | Each occurrence in a ranked list contributes 1 / (60 + rank). Passages that rank well in both lists accumulate points. The best 16 advance. |
 | 6. Rerank | MiniLM reads the question and each candidate together. Its relevance score determines the final four passages. This extra comparison happens only on the shortlist. |
-| 7. Generate | In answer mode, LangChain fills the prompt with the question and numbered passages. Groq returns structured claims with a passage number and quotation. Credentials stay in the local environment. |
+| 7. Generate | In answer mode, LangChain fills the prompt with the question and numbered passages. Groq returns claims with numbered evidence IDs. Python copies each selected source sentence directly from the retrieved text. Credentials stay in the local environment. |
 | 8. Validate and display | For each claim, Python checks the passage number and verifies that the normalized quotation appears in that passage and contains at least 12 characters. It constructs the PDF link from trusted source metadata. Empty claims or a failed citation check yield an insufficient-evidence message. |
 
 ## Verification and architectural limits
